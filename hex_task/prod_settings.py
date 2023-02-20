@@ -1,0 +1,59 @@
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+'''
+This file should be placed in the same folder as settings.py
+'''
+
+
+
+DEBUG = False
+
+# ec2_health_check = os.environ.get('EC2_PRV_IP')
+# ALLOWED_HOSTS = [".loan-co.xyz", ec2_health_check.split(' ')[0]]
+
+#dbs
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.environ.get('DB_NAME'), 
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('PASSWORD'),
+        'HOST': os.environ.get('HOST'),
+        'PORT': '5432',
+    }
+}
+
+# static
+
+STATIC_ROOT = '/var/www/hex_ocean/static'
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+MEDIA_URL = 'media/'
+MEDIA_ROOT = '/var/www/hex_ocean/media'
+
+# logs
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'debug.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

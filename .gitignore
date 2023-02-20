@@ -1,0 +1,6 @@
+data/
+venv/
+media/
+.env
+**/.DS_Store
+**/migrations
