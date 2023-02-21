@@ -151,12 +151,12 @@ REST_FRAMEWORK = {
 }
 
 
-THUMBNAIL_ALIASES = {
-    '': {
-        'avatar': {'size': (40, 40)},
-        'image': {'size': (128, 128)},
-    },
-}
+# THUMBNAIL_ALIASES = {
+#     '': {
+#         'avatar': {'size': (40, 40)},
+#         'image': {'size': (128, 128)},
+#     },
+# }
 
 
 if production == True:

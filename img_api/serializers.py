@@ -1,5 +1,7 @@
-from functools import partialmethod, partial
-from django.conf import settings
+from functools import partial
+from .img_manip import binarize
+from datetime import datetime, timedelta
+from django.core.signing import Signer
 from rest_framework import serializers
 from img_api.models import Image, CustUser, Tier
 from django.contrib.auth.models import User
@@ -50,35 +52,33 @@ class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Image
         fields = '__all__'
-    
-'''
-class ImSer(serializers.ModelSerializer):
-    # image = serializers.ImageField()
-    image = serializers.SerializerMethodField()
-    # thumb = serializers.SerializerMethodField()
 
+
+class ImSer(serializers.ModelSerializer):
+    # image = serializers.SerializerMethodField()
+    bin_image = serializers.SerializerMethodField()
+    hashed_url = serializers.SerializerMethodField()
 
     def __init__(self, *args, **kwargs):
         context = kwargs.get('context')
-        tier_name = context.get('name')
-        thumbnails = context['options']['thumbnails']
-        print(thumbnails)
-        # print(tier_name)
-        # print(kwargs)        
+        options = context.get('options')
+        orig_im = options.get('original')
+        thumbnails = options.get('thumbnails')
+        exp_link = options.get('link_exp')
         super().__init__(*args, **kwargs)
+        # self.fields['bin_image'] = serializers.SerializerMethodField()
+
+        if orig_im == 1:
+            self.fields['image'] = serializers.SerializerMethodField()
 
         for field, size in thumbnails.items():
             field_name = f'thumb_{field}'
-            print(field_name)
-            print(size)
             method_name = f'get_{field_name}'
-            field = partialmethod(self.get_thumbnail_url, size=size)
-            # print(field)
+            setattr(self, method_name, partial(
+                self.get_thumbnail_url, size=size))
             self.fields[field_name] = serializers.SerializerMethodField(
-                method_name=field
-            )
-            print(method_name)
-            
+                method_name=method_name)
+    
 
     def get_image(self, obj):
         request = self.context.get('request')
@@ -86,52 +86,20 @@ class ImSer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
     
-    # def get_thumb(self, obj):
-    #     request = self.context.get('request')
-    #     thumbnailer = get_thumbnailer(obj.image)
-    #     thumbnail_options = {
-    #         'size': (100, 100), 'crop': True
-    #     }
-    #     thumb = thumbnailer.get_thumbnail(thumbnail_options)
-    #     return request.build_absolute_uri(thumb.url)
-
-    def get_thumbnail_url(self, obj, size):
+    def get_bin_image(self, obj):
         request = self.context.get('request')
-        thumbnailer = get_thumbnailer(obj.image)
-        options = {
-            'size': (size, size),
-            'crop': True
-        }
-        thumb = thumbnailer.get_thumbnail(thumbnail_options)
-        return request.build_absolute_uri(thumb.url)
+        img = binarize(obj.image, obj.image.name, 128)
+        return request.build_absolute_uri(img)
     
+    def get_hashed_url(self, obj):
+        image = self.get_bin_image(obj)
+        signer = Signer()
+        time_stamp = datetime.now() + timedelta(seconds=1000)
+        expiry_date = time_stamp.strftime("%Y-%m-%d-%H-%M-%S")
+        url = image + '?expires=' + expiry_date + '&signed='
+        hashed_url = signer.sign(url)
+        return hashed_url
 
-    class Meta:
-        model = Image
-        fields = '__all__'
-
-
-'''
-
-class ImSer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-
-    def __init__(self, *args, **kwargs):
-        context = kwargs.get('context')
-        thumbnails = context['options']['thumbnails']
-        super().__init__(*args, **kwargs)
-
-        for field, size in thumbnails.items():
-            field_name = f'thumb_{field}'
-            method_name = f'get_{field_name}'
-            setattr(self, method_name, partial(self.get_thumbnail_url, size=size))
-            self.fields[field_name] = serializers.SerializerMethodField(method_name=method_name)
-
-    def get_image(self, obj):
-        request = self.context.get('request')
-        if obj.image:
-            return request.build_absolute_uri(obj.image.url)
-        return None
 
     def get_thumbnail_url(self, obj, size):
         request = self.context.get('request')
@@ -140,10 +108,29 @@ class ImSer(serializers.ModelSerializer):
             'size': (size, size),
             'crop': True
         }
-        print(thumbnail_options)
+        # print(thumbnail_options)
         thumb = thumbnailer.get_thumbnail(thumbnail_options)
         return request.build_absolute_uri(thumb.url)
 
     class Meta:
         model = Image
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'created_by',
+            'bin_image',
+            'hashed_url'
+        ]
+
+
+# class ExpiringUrlSerializer(serializers.ModelSerializer):
+    
+#     binary_image_url = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Image
+#         fields = [
+#             'name'
+#         ]
+
+#     def get_binary_image_url(self, )

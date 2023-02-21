@@ -1,5 +1,5 @@
 from django.urls import path, include
-from img_api.views import BasicViewSet, GetThumbnailsView
+from img_api.views import BasicViewSet, GetThumbnailsView, ImageView
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -11,5 +11,6 @@ urlpatterns = [
         'get': 'list',
         'post': 'create'
     })),
-    path('test', GetThumbnailsView.as_view())
-] + dev_settings
+    path('test', GetThumbnailsView.as_view()),
+    path('media/<int:pk>/images/<path:filename>/', ImageView.as_view())]
+# ] + dev_settings
