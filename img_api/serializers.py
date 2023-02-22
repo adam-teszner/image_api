@@ -1,4 +1,5 @@
 from functools import partial
+from urllib.parse import urlparse
 from .img_manip import binarize
 from datetime import datetime, timedelta
 from django.core.signing import Signer
@@ -40,21 +41,14 @@ class ThumbnailSerializer(serializers.ImageField):
 
 
 class ImageSerializer(serializers.ModelSerializer):
-    # image = ThumbnailSerializer(alias='image')
-    # avatar = ThumbnailSerializer(alias='avatar', source='image')
-    # created_by = CustUserSerializer()
 
-
-    # def to_representation(self, instance):
-    #     repr = super().to_representation(instance)
-    #     return repr
 
     class Meta:
         model = Image
         fields = '__all__'
 
 
-class ImSer(serializers.ModelSerializer):
+class ImgSerializer(serializers.ModelSerializer):
     # image = serializers.SerializerMethodField()
     bin_image = serializers.SerializerMethodField()
     hashed_url = serializers.SerializerMethodField()
@@ -93,12 +87,14 @@ class ImSer(serializers.ModelSerializer):
     
     def get_hashed_url(self, obj):
         image = self.get_bin_image(obj)
-        signer = Signer()
-        time_stamp = datetime.now() + timedelta(seconds=1000)
+        print(image, 'SERIALIZER')
+        signer = Signer(sep='&signed=')
+        time_stamp = datetime.now() + timedelta(seconds=30)
         expiry_date = time_stamp.strftime("%Y-%m-%d-%H-%M-%S")
-        url = image + '?expires=' + expiry_date + '&signed='
+        url = image + '/?expires=' + expiry_date
         hashed_url = signer.sign(url)
         return hashed_url
+
 
 
     def get_thumbnail_url(self, obj, size):
@@ -111,6 +107,10 @@ class ImSer(serializers.ModelSerializer):
         # print(thumbnail_options)
         thumb = thumbnailer.get_thumbnail(thumbnail_options)
         return request.build_absolute_uri(thumb.url)
+    
+
+    def create(self, obj):
+        pass
 
     class Meta:
         model = Image
@@ -122,15 +122,14 @@ class ImSer(serializers.ModelSerializer):
             'hashed_url'
         ]
 
+class ImgUploadSerializer(serializers.ModelSerializer):
+    name = serializers.CharField()
+    image = serializers.ImageField()
 
-# class ExpiringUrlSerializer(serializers.ModelSerializer):
-    
-#     binary_image_url = serializers.SerializerMethodField()
 
-#     class Meta:
-#         model = Image
-#         fields = [
-#             'name'
-#         ]
-
-#     def get_binary_image_url(self, )
+    class Meta:
+        model = Image
+        fields = [
+            'name',
+            'image'
+        ]
