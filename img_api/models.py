@@ -3,8 +3,11 @@ from django.contrib.auth.models import User
 
 # Defines image path based on user
 def image_path(instance, filename):
+    print(filename)
+    print(instance)
     user_id = instance.created_by.id
     return f'{user_id}/images/{filename}'
+    # return f'chuj/images/{filename}'
 
 # Create your models here.
 class Tier(models.Model):

@@ -19,5 +19,5 @@ urlpatterns = [
     #     'get': 'list',
     # })),
     path('media/<int:pk>/images/<path:filename>/', ImageView.as_view()),
-    ] + router.urls
-# ] + dev_settings
+    ] + router.urls 
+# + dev_settings

@@ -49,8 +49,7 @@ class ImageSerializer(serializers.ModelSerializer):
 
 
 class ImgSerializer(serializers.ModelSerializer):
-    # image = serializers.SerializerMethodField()
-    bin_image = serializers.SerializerMethodField()
+    # bin_image = serializers.SerializerMethodField()
     hashed_url = serializers.SerializerMethodField()
 
     def __init__(self, *args, **kwargs):
@@ -60,7 +59,6 @@ class ImgSerializer(serializers.ModelSerializer):
         thumbnails = options.get('thumbnails')
         exp_link = options.get('link_exp')
         super().__init__(*args, **kwargs)
-        # self.fields['bin_image'] = serializers.SerializerMethodField()
 
         if orig_im == 1:
             self.fields['image'] = serializers.SerializerMethodField()
@@ -109,27 +107,23 @@ class ImgSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(thumb.url)
     
 
-    def create(self, obj):
-        pass
-
     class Meta:
         model = Image
         fields = [
             'id',
             'name',
             'created_by',
-            'bin_image',
-            'hashed_url'
+            # 'bin_image',
+            'hashed_url',
         ]
 
 class ImgUploadSerializer(serializers.ModelSerializer):
-    name = serializers.CharField()
-    image = serializers.ImageField()
-
+    expiration_time = serializers.IntegerField()
 
     class Meta:
         model = Image
         fields = [
             'name',
-            'image'
+            'image',
+            'expiration_time'
         ]
