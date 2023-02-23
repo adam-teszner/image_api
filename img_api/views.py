@@ -5,6 +5,7 @@ from django.http import HttpResponse, FileResponse
 from django.core.signing import Signer, BadSignature
 from django.views.generic import View
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import viewsets, views
@@ -15,7 +16,7 @@ from rest_framework.exceptions import AuthenticationFailed, PermissionDenied, No
 from rest_framework.response import Response
 from rest_framework.parsers import FileUploadParser, MultiPartParser, FormParser
 from img_api.models import Image, CustUser, Tier
-from img_api.serializers import ImageSerializer, ImgSerializer, ImgUploadSerializer
+from img_api.serializers import ImageSerializer, ImgSerializer, ImgUploadSerializer, PrimaryImageSerializer, ExpiringLinkSerializer
 
 # Create your views here.
    
@@ -55,7 +56,8 @@ class GetThumbnailsView(views.APIView):
 
 class ImgApiViewSet(viewsets.ViewSet):
     parser_classes = [MultiPartParser, FormParser]
-    serializer_class = ImgUploadSerializer 
+    # serializer_class = ImgUploadSerializer
+    serializer_class = PrimaryImageSerializer
 
 
     def get_queryset(self, request):
@@ -68,10 +70,13 @@ class ImgApiViewSet(viewsets.ViewSet):
         context = {
             'request': request,
             'name': tier.name,
-            'options': tier.options
+            'options': tier.options,
+            'original_link': tier.original_link,
+            'bin_img_exp_link': tier.bin_img_exp_link
         }
-        serializer = ImgSerializer(self.get_queryset(request), many=True, context=context)
+        serializer = PrimaryImageSerializer(self.get_queryset(request), many=True, context=context)
         return serializer
+    
 
     def list(self, request):
         user = request.user.id
@@ -80,22 +85,43 @@ class ImgApiViewSet(viewsets.ViewSet):
         context = {
             'request': request,
             'name': tier.name,
-            'options': tier.options
+            'options': tier.options,
+            'original_link': tier.original_link,
+            'bin_img_exp_link': tier.bin_img_exp_link
         }
-        serializer = ImgSerializer(self.get_queryset(request), many=True, context=context)
+        serializer = PrimaryImageSerializer(self.get_queryset(request), many=True, context=context)
 
         return Response(data=serializer.data)
     
     def create(self, request): 
         cust_user = CustUser.objects.get(user=request.user.id)
-        serializer = ImgUploadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        expiration_time = serializer.validated_data.pop('expiration_time')
-        serializer.save(created_by = cust_user)
-        return self.retrieve(request, pk=serializer.instance.id, created=True)
+        context = {
+            'created_by': cust_user
+        }  
+        serializer = PrimaryImageSerializer(data=request.data, context=context)
+        if serializer.is_valid():
+            serializer.save()
+        
+        return self.retrieve(request, pk=serializer.instance.id,
+                            created=True)
 
+    '''
+    def create(self, request):
+        cust_user = CustUser.objects.get(user=request.user.id)
+        context = {
+            'created_by': cust_user,
+            'request': request
+        }      
+        serializer = ImgUploadSerializer(data=request.data, context=context)
+        if serializer.is_valid():
+            serializer.save()
+        # serializer.is_valid(raise_exception=True)
+        print(serializer.data, "VIEW")
+        # serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    '''
 
-    def retrieve(self, request, pk=None, created=None):
+    def retrieve(self, request, pk=None, created=None, expiration_time=None):
         user = request.user.id
         tier = Tier.objects.get(custuser__user__id=user)
         image = get_object_or_404(self.get_queryset(request), pk=pk)
@@ -104,10 +130,31 @@ class ImgApiViewSet(viewsets.ViewSet):
         context = {
             'request': request,
             'name': tier.name,
-            'options': tier.options
+            'options': tier.options,
+            'original_link': tier.original_link,
+            'bin_img_exp_link': tier.bin_img_exp_link if expiration_time==None else expiration_time
         }
-        serializer = ImgSerializer(image, context=context)
+        serializer = PrimaryImageSerializer(image, context=context)
 
+        return Response(data=serializer.data, status=status_code)
+    
+    @action(detail=True, methods=['POST', 'GET'])
+    def generate_expiring_url(self, request, *args, **kwargs):
+        self.serializer_class = ExpiringLinkSerializer
+        user = request.user.id
+        tier = Tier.objects.get(custuser__user__id=user)
+        image = get_object_or_404(self.get_queryset(request), pk=kwargs.get('pk'))
+        status_code = status.HTTP_200_OK
+        # print(tier.bin_img_exp_link)
+        if tier.bin_img_exp_link == None or tier.bin_img_exp_link == 0:
+            raise PermissionDenied('You dont have permissions to generate urls')
+
+        context = {
+            'request': request,
+            'bin_img_exp_link': tier.bin_img_exp_link,
+            'object': image
+        }
+        serializer = ExpiringLinkSerializer(request, context=context)
         return Response(data=serializer.data, status=status_code)
 
 
@@ -154,3 +201,45 @@ class ImageView(views.APIView):
 
 
             return FileResponse(open(full_path, 'rb'), status=status.HTTP_200_OK)
+
+'''
+class ApiViewSet(viewsets.ModelViewSet):
+
+
+    queryset = Image.objects.all()
+    serializer_class = PrimaryImageSerializer
+
+
+def get_serializer_context(self, *args, **kwargs):
+    user = request.user.id
+    tier = Tier.objects.get(custuser__user__id=user)
+    context = super().get_serializer_context()
+    print(context)
+    context['options'] = tier.options
+    context['name'] = tier.name
+    context['original_link'] = tier.original_link
+    context['bin_img_exp_link'] = tier.bin_img_exp_link
+    print(context)
+    return context
+
+
+
+
+# def get_context_data(self, **kwargs):
+#     user = request.user.id
+#     tier = Tier.objects.get(custuser__user__id=user)
+#     context = super().get_context_data(**kwargs)
+#     context['options'] = tier.options
+#     context['name'] = tier.name
+#     context['original_link'] = tier.original_link
+#     context['bin_img_exp_link'] = tier.bin_img_exp_link
+#     print(context)
+#     return context
+
+
+def list(self, request, *args, **kwargs):
+
+    # context = self.get_context_data(request, *args, **kwargs)
+    serilizetr = PrimaryImageSerializer(context=self.get_serializer_context())
+
+'''

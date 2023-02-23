@@ -7,12 +7,13 @@ def image_path(instance, filename):
     print(instance)
     user_id = instance.created_by.id
     return f'{user_id}/images/{filename}'
-    # return f'chuj/images/{filename}'
 
 # Create your models here.
 class Tier(models.Model):
     name = models.CharField(max_length=50)
-    options = models.JSONField()
+    options = models.JSONField(default=dict, blank=True, null=True)
+    original_link = models.BooleanField(default=False)
+    bin_img_exp_link = models.IntegerField(blank=True, null=True, default=None)
 
     def __str__(self):
         return self.name
