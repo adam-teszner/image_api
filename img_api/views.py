@@ -121,7 +121,7 @@ class ImgApiViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
     '''
 
-    def retrieve(self, request, pk=None, created=None, expiration_time=None):
+    def retrieve(self, request, pk=None, created=None):
         user = request.user.id
         tier = Tier.objects.get(custuser__user__id=user)
         image = get_object_or_404(self.get_queryset(request), pk=pk)
@@ -132,7 +132,7 @@ class ImgApiViewSet(viewsets.ViewSet):
             'name': tier.name,
             'options': tier.options,
             'original_link': tier.original_link,
-            'bin_img_exp_link': tier.bin_img_exp_link if expiration_time==None else expiration_time
+            'bin_img_exp_link': tier.bin_img_exp_link
         }
         serializer = PrimaryImageSerializer(image, context=context)
 

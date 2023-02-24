@@ -1,12 +1,13 @@
+from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
 
-# Defines image path based on user
+# Defines image path based on user and current date
 def image_path(instance, filename):
-    print(filename)
-    print(instance)
+    now = datetime.now()
+    folder = now.strftime("%Y%m%d%H%M%S%f")
     user_id = instance.created_by.id
-    return f'{user_id}/images/{filename}'
+    return f'{user_id}/images/{folder}/{filename}'
 
 # Create your models here.
 class Tier(models.Model):
@@ -14,6 +15,7 @@ class Tier(models.Model):
     options = models.JSONField(default=dict, blank=True, null=True)
     original_link = models.BooleanField(default=False)
     bin_img_exp_link = models.IntegerField(blank=True, null=True, default=None)
+    list_details = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

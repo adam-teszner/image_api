@@ -232,8 +232,11 @@ class PrimaryImageSerializer(serializers.ModelSerializer):
     def get_thumbnail_url(self, obj, size):
         request = self.context.get('request')
         thumbnailer = get_thumbnailer(obj.image)
+
+        # Scaling image in single dimension by using zero as the placeholder in
+        # the size. Info at easy-thumbnails>processors>scale_and_crop
         thumbnail_options = {
-            'size': (size, size)
+            'size': (0, size)
         }
         thumb = thumbnailer.get_thumbnail(thumbnail_options)
         return request.build_absolute_uri(thumb.url)
