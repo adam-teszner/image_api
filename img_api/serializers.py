@@ -287,8 +287,9 @@ class ExpiringLinkSerializer(serializers.Serializer):
         time_stamp = datetime.now() + timedelta(seconds=int(time))
         expiry_date = time_stamp.strftime("%Y-%m-%d-%H-%M-%S")
         url = image + '/?expires=' + expiry_date
-        hashed_url = signer.sign(url)
-        return request.build_absolute_uri(hashed_url)
+        full_url = request.build_absolute_uri(url)
+        hashed_url = signer.sign(full_url)
+        return hashed_url
     
     # def to_representation(self, instance):
     #     representation = super().to_representation(instance)
