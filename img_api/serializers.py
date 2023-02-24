@@ -2,8 +2,11 @@ from functools import partial
 from .img_manip import binarize
 from datetime import datetime, timedelta
 from django.core.signing import Signer
+from django.core.validators import FileExtensionValidator
 from rest_framework import serializers
 from img_api.models import Image
+from .validators import (image_size_validator, image_type_validator,
+                        expiring_link_value_validator)
 
 from easy_thumbnails.templatetags.thumbnail import thumbnail_url
 from easy_thumbnails.files import get_thumbnailer
@@ -15,7 +18,9 @@ class PrimaryImageSerializer(serializers.ModelSerializer):
     thumbnails based on Tier settings.
     '''
 
-    image = serializers.ImageField(write_only=True)
+    image = serializers.ImageField(required=True,
+                        write_only=True,
+                        validators=[image_size_validator, image_type_validator])
     details = serializers.HyperlinkedIdentityField(
         view_name='api-detail',
         read_only=True,
@@ -61,6 +66,10 @@ class PrimaryImageSerializer(serializers.ModelSerializer):
         return None
 
     def get_thumbnail_url(self, obj, size):
+        try:
+            assert type(size) == int and 0 < size < 2000
+        except AssertionError:
+            size = 100
         request = self.context.get('request')
         thumbnailer = get_thumbnailer(obj.image)
 
@@ -105,7 +114,9 @@ class PrimaryImageSerializer(serializers.ModelSerializer):
         ]
 
 class ExpiringLinkSerializer(serializers.Serializer):
-    expiration_time = serializers.IntegerField(write_only=True)
+    expiration_time = serializers.IntegerField(write_only=True, validators=[
+        expiring_link_value_validator
+    ])
     url = serializers.SerializerMethodField()
     
     
@@ -114,10 +125,19 @@ class ExpiringLinkSerializer(serializers.Serializer):
         obj = self.context.get('object')
         image = binarize(obj.image, obj.image.name, 128)
         signer = Signer(sep='&signed=')
+        '''
+        I decided to go with this approach because I wanted expiration
+        link to be generated with default values from User-Tier settings
+        on GET request. Additionally, user can define his own expiration
+        time and this data gets validated first.
+        It can be changed by writing to_representation method, to only
+        accept pre validated data, but then there won't be a link on GET request
+        '''
         if request.method == 'GET':
             time = self.context.get('bin_img_exp_link')
         elif request.method == 'POST':
-            time = request.data.get('expiration_time')
+            time = int(request.data.get('expiration_time'))
+            expiring_link_value_validator(time)
         time_stamp = datetime.now() + timedelta(seconds=int(time))
         expiry_date = time_stamp.strftime("%Y-%m-%d-%H-%M-%S")
         url = image + '/?expires=' + expiry_date

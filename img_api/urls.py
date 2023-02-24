@@ -7,7 +7,6 @@ from django.conf.urls.static import static
 dev_settings = static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) if settings.DEBUG == True else []
 router = DefaultRouter()
 router.register('api', ImgApiViewSet, basename='api')
-# router.register('imgapi', ApiViewSet, basename='apiview')
 
 urlpatterns = [
     path('', include('rest_framework.urls')), # For login/logout using browsable api

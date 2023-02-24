@@ -18,7 +18,6 @@ from img_api.serializers import PrimaryImageSerializer, ExpiringLinkSerializer
 
 class ImgApiViewSet(viewsets.ViewSet):
     parser_classes = [MultiPartParser, FormParser]
-    # serializer_class = ImgUploadSerializer
     serializer_class = PrimaryImageSerializer
 
 
@@ -57,10 +56,10 @@ class ImgApiViewSet(viewsets.ViewSet):
         context = {'created_by': cust_user}  
         serializer = PrimaryImageSerializer(data=request.data, context=context)
         if serializer.is_valid():
-            serializer.save()
-        
-        return self.retrieve(request, pk=serializer.instance.id,
+            serializer.save()        
+            return self.retrieve(request, pk=serializer.instance.id,
                             created=True)
+        return Response(serializer.errors, status=status.HTTP_403_FORBIDDEN)
 
     def retrieve(self, request, pk=None, created=None):
         user = request.user.id
