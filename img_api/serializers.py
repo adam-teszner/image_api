@@ -1,135 +1,131 @@
 from functools import partial
-from urllib.parse import urlparse
 from .img_manip import binarize
 from datetime import datetime, timedelta
 from django.core.signing import Signer
 from rest_framework import serializers
-from img_api.models import Image, CustUser, Tier
-from django.contrib.auth.models import User
+from img_api.models import Image
 
 from easy_thumbnails.templatetags.thumbnail import thumbnail_url
 from easy_thumbnails.files import get_thumbnailer
 
-class TierSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model = Tier
-        fields = '__all__'
+class PrimaryImageSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for generating model data and dynamically generating
+    thumbnails based on Tier settings.
+    '''
 
-class CustUserSerializer(serializers.ModelSerializer):
-    account_type = TierSerializer()
-
-    class Meta:
-        model = CustUser
-        fields = '__all__'
-
-class ThumbnailSerializer(serializers.ImageField):
-    def __init__(self, alias, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.read_only = True
-        self.alias = alias
-
-    def to_representation(self, value):
-        if not value:
-            return None
-
-        url = thumbnail_url(value, self.alias)
-        request = self.context.get('request', None)
-        if request is not None:
-            return request.build_absolute_uri(url)
-        return url
-
-
-class ImageSerializer(serializers.ModelSerializer):
-
-
-    class Meta:
-        model = Image
-        fields = '__all__'
-
-
-class ImgSerializer(serializers.ModelSerializer):
-    # image = serializers.SerializerMethodField()
-    bin_image = serializers.SerializerMethodField()
-    hashed_url = serializers.SerializerMethodField()
+    image = serializers.ImageField(write_only=True)
+    details = serializers.HyperlinkedIdentityField(
+        view_name='api-detail',
+        read_only=True,
+        lookup_field='pk'
+    )
 
     def __init__(self, *args, **kwargs):
+        # Get data from context, passed from view, based on current User Tier
         context = kwargs.get('context')
-        options = context.get('options')
-        orig_im = options.get('original')
-        thumbnails = options.get('thumbnails')
-        exp_link = options.get('link_exp')
+        thumbnails = context.get('options')
+        orig_img_link = context.get('original_link')
+        binary_img_link = context.get('bin_img_exp_link')
         super().__init__(*args, **kwargs)
-        # self.fields['bin_image'] = serializers.SerializerMethodField()
 
-        if orig_im == 1:
-            self.fields['image'] = serializers.SerializerMethodField()
 
-        for field, size in thumbnails.items():
-            field_name = f'thumb_{field}'
-            method_name = f'get_{field_name}'
-            setattr(self, method_name, partial(
-                self.get_thumbnail_url, size=size))
-            self.fields[field_name] = serializers.SerializerMethodField(
-                method_name=method_name)
-    
+        # Dynamically create thumbnails based on "options" JSONfield in
+        # in Tier model.
+        try:
+            for field, size in thumbnails.items():
+                field_name = f'thumb_{field}'
+                method_name = f'get_{field_name}'
+                setattr(self, method_name, partial(
+                    self.get_thumbnail_url, size=size))
+                self.fields[field_name] = serializers.SerializerMethodField(
+                    method_name=method_name)
+        except AttributeError:
+            pass
 
-    def get_image(self, obj):
+        # Serialize link to the original image
+        if orig_img_link == True:
+            self.fields['original_image'] = serializers.SerializerMethodField()
+
+        # Save binary image, then serialize expiring link 
+        # to the binary version of the image
+        if binary_img_link != 0 and binary_img_link != None:
+            self.fields['binary_image_link'] = serializers.SerializerMethodField()
+            
+
+    def get_original_image(self, obj):
         request = self.context.get('request')
         if obj.image:
             return request.build_absolute_uri(obj.image.url)
         return None
+
+    def get_thumbnail_url(self, obj, size):
+        request = self.context.get('request')
+        thumbnailer = get_thumbnailer(obj.image)
+
+        # Scaling image in single dimension by using zero as the placeholder in
+        # the size. Info at easy-thumbnails>processors>scale_and_crop
+        thumbnail_options = {
+            'size': (0, size)
+        }
+        thumb = thumbnailer.get_thumbnail(thumbnail_options)
+        return request.build_absolute_uri(thumb.url)
     
     def get_bin_image(self, obj):
         request = self.context.get('request')
         img = binarize(obj.image, obj.image.name, 128)
         return request.build_absolute_uri(img)
     
-    def get_hashed_url(self, obj):
+    def get_binary_image_link(self, obj):
+        seconds = self.context.get('bin_img_exp_link')
         image = self.get_bin_image(obj)
-        print(image, 'SERIALIZER')
         signer = Signer(sep='&signed=')
-        time_stamp = datetime.now() + timedelta(seconds=30)
+        try:
+            time_stamp = datetime.now() + timedelta(seconds=seconds)
+        except TypeError:
+            return None
         expiry_date = time_stamp.strftime("%Y-%m-%d-%H-%M-%S")
         url = image + '/?expires=' + expiry_date
         hashed_url = signer.sign(url)
         return hashed_url
-
-
-
-    def get_thumbnail_url(self, obj, size):
-        request = self.context.get('request')
-        thumbnailer = get_thumbnailer(obj.image)
-        thumbnail_options = {
-            'size': (size, size),
-            'crop': True
-        }
-        # print(thumbnail_options)
-        thumb = thumbnailer.get_thumbnail(thumbnail_options)
-        return request.build_absolute_uri(thumb.url)
     
-
-    def create(self, obj):
-        pass
-
+    def create(self, validated_data):
+        created_by = self.context.get('created_by')
+        image = Image.objects.create(**validated_data, created_by=created_by)
+        return image
+    
     class Meta:
         model = Image
         fields = [
             'id',
             'name',
-            'created_by',
-            'bin_image',
-            'hashed_url'
+            'image',
+            'details'
         ]
 
-class ImgUploadSerializer(serializers.ModelSerializer):
-    name = serializers.CharField()
-    image = serializers.ImageField()
+class ExpiringLinkSerializer(serializers.Serializer):
+    expiration_time = serializers.IntegerField(write_only=True)
+    url = serializers.SerializerMethodField()
+    
+    
+    def get_url(self, obj):
+        request = self.context.get('request')
+        obj = self.context.get('object')
+        image = binarize(obj.image, obj.image.name, 128)
+        signer = Signer(sep='&signed=')
+        if request.method == 'GET':
+            time = self.context.get('bin_img_exp_link')
+        elif request.method == 'POST':
+            time = request.data.get('expiration_time')
+        time_stamp = datetime.now() + timedelta(seconds=int(time))
+        expiry_date = time_stamp.strftime("%Y-%m-%d-%H-%M-%S")
+        url = image + '/?expires=' + expiry_date
+        full_url = request.build_absolute_uri(url)
+        hashed_url = signer.sign(full_url)
+        return hashed_url
 
 
     class Meta:
         model = Image
-        fields = [
-            'name',
-            'image'
-        ]
+        fields = ['expiration_time']
