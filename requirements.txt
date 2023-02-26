@@ -1,8 +1,10 @@
-psycopg2==2.9.5
 asgiref==3.6.0
 Django==4.1.7
 djangorestframework==3.14.0
 easy-thumbnails==2.8.5
+factory-boy==3.2.1
+freezegun==1.2.2
 Pillow==9.4.0
 pytz==2022.7.1
 sqlparse==0.4.3
+psycopg2==2.9.5

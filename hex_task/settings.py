@@ -150,14 +150,5 @@ REST_FRAMEWORK = {
     'LOGIN_URL': '/login/',
 }
 
-
-THUMBNAIL_ALIASES = {
-    '': {
-        'avatar': {'size': (40, 40)},
-        'image': {'size': (128, 128)},
-    },
-}
-
-
 if production == True:
     from loan_co_site.prod_settings import *
