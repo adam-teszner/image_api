@@ -11,16 +11,16 @@ services:
       - ./data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready"]
-      # interval: 1m30s
-      # timeout: 30s
-      # retries: 5
-      # start_period: 30s
+      interval: 1m30s
+      timeout: 30s
+      retries: 3
+      start_period: 15s
   web:
     build: .
     # command: python manage.py runserver 0.0.0.0:8000
     # command: bash -c "apt-get update && apt-get install -y tzdata && ln -fs /usr/share/zoneinfo/Europe/Warsaw /etc/localtime && dpkg-reconfigure --frontend noninteractive tzdata && python manage.py runserver 0.0.0.0:8000"
     # command to run migrations and populate database with 3 basic tiers and superuser
-    command: bash -c "apt-get update && apt-get install -y tzdata && ln -fs /usr/share/zoneinfo/Europe/Warsaw /etc/localtime && dpkg-reconfigure --frontend noninteractive tzdata && python manage.py migrate && python manage.py makemigrations && python manage.py migrate && python manage.py pop_tiers || true && python manage.py runserver 0.0.0.0:8000"
+    command: bash -c "apt-get update && apt-get install -y tzdata && ln -fs /usr/share/zoneinfo/Europe/Warsaw /etc/localtime && dpkg-reconfigure --frontend noninteractive tzdata && python manage.py migrate && python manage.py makemigrations img_api && python manage.py migrate && python manage.py pop_tiers || true && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/hex_ocean
     env_file:
