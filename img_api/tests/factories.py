@@ -3,6 +3,7 @@ from PIL import Image
 from django.contrib.auth.models import User
 from img_api.models import CustUser, Image, Tier
 
+
 class UserModelFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = User

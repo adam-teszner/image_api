@@ -1,23 +1,24 @@
-import re
+import tempfile
 from datetime import datetime, timedelta
 
 from django.core.signing import Signer
-from easy_thumbnails.files import get_thumbnailer
-from rest_framework.reverse import reverse
-from rest_framework.test import APIRequestFactory, APITestCase
+from rest_framework.test import (APIRequestFactory, APITestCase,
+                                 override_settings)
 
-from img_api.img_manip import binarize
 from img_api.serializers import ExpiringLinkSerializer, PrimaryImageSerializer
 
 from . import factories
 
+
+
+MEDIA_ROOT = tempfile.mkdtemp()
 
 class MyReq(APIRequestFactory):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data = kwargs.get('data')
     
-
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
 class TestPrimaryImageSerializer(APITestCase):
     def setUp(self) -> None:
         self.user = factories.UserModelFactory.create()
@@ -101,7 +102,7 @@ class TestPrimaryImageSerializer(APITestCase):
         self.assertIsNotNone(ser.instance.id)
         self.assertTrue(ser.instance.created_by, self.cust_user)
 
-
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
 class TestExpiringLinkSerializer(APITestCase):
     def setUp(self) -> None:
         self.user = factories.UserModelFactory.create()
