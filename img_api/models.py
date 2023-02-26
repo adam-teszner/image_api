@@ -2,7 +2,7 @@ from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
 
-# Defines image path based on user and current date
+# Defines image path based on user_id and current date
 def image_path(instance, filename):
     now = datetime.now()
     folder = now.strftime("%Y%m%d%H%M%S%f")

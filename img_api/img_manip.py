@@ -3,8 +3,13 @@ from django.conf import settings
 
 def binarize(image: object, image_name: str, threshold: int) -> str:
     '''
-        imaage = obj.image, image_name = obj.image.name, 
-        threshold - int between 0-255 
+    Binarizes images using pillow, 
+    arg image = obj.image,
+    arg image_name = obj.image.name, 
+    arg threshold - int between 0-255 
+
+    method from:
+    https://stackoverflow.com/questions/68957686/pillow-how-to-binarize-an-image-with-threshold
     '''
 
     if threshold < 0 or threshold > 255:

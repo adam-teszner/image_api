@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from django.conf import settings
 from django.core.signing import BadSignature, Signer
@@ -8,11 +8,9 @@ from rest_framework import status, views, viewsets
 from rest_framework.authentication import (BasicAuthentication,
                                            SessionAuthentication)
 from rest_framework.decorators import action
-from rest_framework.exceptions import (AuthenticationFailed, NotFound,
-                                       PermissionDenied)
-from rest_framework.parsers import (FileUploadParser, FormParser,
-                                    MultiPartParser)
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from img_api.models import CustUser, Image, Tier
@@ -44,6 +42,12 @@ class ImgApiViewSet(viewsets.ViewSet):
     
 
     def list(self, request):
+        '''
+        Checks Tier model "list_details" setting.
+        Defaults to False.
+        if set to True, lists images with links to thumbnails, binary
+        images etc. which is resource heavy because of how it is implemented
+        '''
         user = request.user.id
         tier = Tier.objects.get(custuser__user__id=user)
         if tier.list_details == True:
@@ -56,6 +60,10 @@ class ImgApiViewSet(viewsets.ViewSet):
         return Response(data=serializer.data, status=status.HTTP_200_OK)
     
     def create(self, request): 
+        '''
+        Saves uploaded image, if valid, calls 'retrieve' to get thumbnails,
+        binary image link etc
+        '''
         cust_user = CustUser.objects.get(user=request.user.id)
         context = {'created_by': cust_user}  
         serializer = PrimaryImageSerializer(data=request.data, context=context)
@@ -77,6 +85,11 @@ class ImgApiViewSet(viewsets.ViewSet):
     
     @action(detail=True, methods=['POST', 'GET'])
     def generate_expiring_url(self, request, *args, **kwargs):
+        '''
+        Ability to generate expiring, signed url. User can set the url 
+        expiration time in seconds. Restricted to users with "binary image 
+        expiring link" setting set in their User-Tiers.
+        '''
         self.serializer_class = ExpiringLinkSerializer
         user = request.user.id
         tier = Tier.objects.get(custuser__user__id=user)

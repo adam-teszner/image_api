@@ -1,6 +1,8 @@
 import imghdr
+
 from django import forms
 from rest_framework.exceptions import ValidationError
+
 
 # Checks for image size
 def image_size_validator(image, in_admin=False):
