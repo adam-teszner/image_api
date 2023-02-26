@@ -1,10 +1,10 @@
-from django.contrib import admin
-from django.core.exceptions import ValidationError
-from .validators import (expiring_link_value_validator, image_size_validator,
-                        image_type_validator)
-from img_api.models import Image, Tier, CustUser
 from django import forms
+from django.contrib import admin
 
+from img_api.models import CustUser, Image, Tier
+
+from .validators import (expiring_link_value_validator, image_size_validator,
+                         image_type_validator)
 
 
 class TierForm(forms.ModelForm):

@@ -38,7 +38,7 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = '/var/www/hex_ocean/media'
 
 # logs
-
+'''
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -57,3 +57,4 @@ LOGGING = {
         },
     },
 }
+'''
