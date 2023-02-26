@@ -1,9 +1,19 @@
+import tempfile
+
+from django.test import TestCase, override_settings
+
+from img_api.models import CustUser, Image
+
 from . import factories
-from django.contrib.auth.models import User
-from img_api.models import Tier, CustUser, Image
-from django.test import TestCase
 
 
+
+
+# Creates a temp directory, outside of projects MEDIA_ROOT folder
+# https://dirtycoder.net/2016/02/09/testing-a-model-that-have-an-imagefield/
+MEDIA_ROOT = tempfile.mkdtemp()
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
 class TestModels(TestCase):
 
 

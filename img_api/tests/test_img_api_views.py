@@ -1,18 +1,21 @@
 import json
-from datetime import datetime, timedelta
-import factory
-from freezegun import freeze_time
-from . import factories
-from rest_framework.test import APITestCase, APIRequestFactory, APIClient
-from img_api.views import ImgApiViewSet, ImageView
-from img_api.models import CustUser, Tier, Image
+import tempfile
+from datetime import datetime
+
 from django.contrib.auth.models import User
-from rest_framework.reverse import reverse
+from freezegun import freeze_time
 from rest_framework import status
-from django.conf import settings
+from rest_framework.test import APIClient, APITestCase, override_settings
+
+from img_api.views import ImageView, ImgApiViewSet
+
+from . import factories
 
 
 
+MEDIA_ROOT = tempfile.mkdtemp()
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
 class TestApiViewSet(APITestCase):
     def setUp(self) -> None:
 
@@ -82,7 +85,7 @@ class TestApiViewSet(APITestCase):
             data={'expiration_time': '10'})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
 class TestImageView(APITestCase):
     def setUp(self) -> None:
         self.client = APIClient()
