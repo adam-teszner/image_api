@@ -10,6 +10,7 @@ router.register('api', ImgApiViewSet, basename='api')
 
 urlpatterns = [
     path('', include('rest_framework.urls')), # For login/logout using browsable api
-    path('media/<int:pk>/images/<path:filename>/', ImageView.as_view()),
-    ] + router.urls 
+    path('media/<int:pk>/images/<path:filename>/', ImageView.as_view(), name='image_view'),
+    path('', include(router.urls))
+]
 # + dev_settings

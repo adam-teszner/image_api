@@ -6,8 +6,9 @@ from img_api.models import Image, Tier, CustUser
 from django import forms
 
 
+
 class TierForm(forms.ModelForm):
-    
+
     def clean_bin_img_exp_link(self):
         '''
         Validates for correct input

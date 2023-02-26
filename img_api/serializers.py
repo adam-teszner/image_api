@@ -1,15 +1,17 @@
-from functools import partial
-from .img_manip import binarize
 from datetime import datetime, timedelta
+from functools import partial
+
 from django.core.signing import Signer
 from django.core.validators import FileExtensionValidator
-from rest_framework import serializers
-from img_api.models import Image
-from .validators import (image_size_validator, image_type_validator,
-                        expiring_link_value_validator)
-
-from easy_thumbnails.templatetags.thumbnail import thumbnail_url
 from easy_thumbnails.files import get_thumbnailer
+from easy_thumbnails.templatetags.thumbnail import thumbnail_url
+from rest_framework import serializers
+
+from img_api.models import Image
+
+from .img_manip import binarize
+from .validators import (expiring_link_value_validator, image_size_validator,
+                         image_type_validator)
 
 
 class PrimaryImageSerializer(serializers.ModelSerializer):
@@ -128,8 +130,8 @@ class ExpiringLinkSerializer(serializers.Serializer):
         '''
         I decided to go with this approach because I wanted expiration
         link to be generated with default values from User-Tier settings
-        on GET request. Additionally, user can define his own expiration
-        time and this data gets validated first.
+        on GET request. Additionally, user is still able to define expiration
+        time by entering value in expiration_time.
         It can be changed by writing to_representation method, to only
         accept pre validated data, but then there won't be a link on GET request
         '''

@@ -1,22 +1,26 @@
 from datetime import datetime, timedelta
+
 from django.conf import settings
+from django.core.signing import BadSignature, Signer
 from django.http import FileResponse
-from django.core.signing import Signer, BadSignature
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, views, status
+from rest_framework import status, views, viewsets
+from rest_framework.authentication import (BasicAuthentication,
+                                           SessionAuthentication)
 from rest_framework.decorators import action
+from rest_framework.exceptions import (AuthenticationFailed, NotFound,
+                                       PermissionDenied)
+from rest_framework.parsers import (FileUploadParser, FormParser,
+                                    MultiPartParser)
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.authentication import (SessionAuthentication,
-                                           BasicAuthentication)
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.exceptions import (AuthenticationFailed, PermissionDenied,
-                                    NotFound)
-from rest_framework.parsers import FileUploadParser, MultiPartParser, FormParser
-from img_api.models import Image, CustUser, Tier
-from img_api.serializers import PrimaryImageSerializer, ExpiringLinkSerializer
+
+from img_api.models import CustUser, Image, Tier
+from img_api.serializers import ExpiringLinkSerializer, PrimaryImageSerializer
 
 
 class ImgApiViewSet(viewsets.ViewSet):
+    authentication_classes = [BasicAuthentication, SessionAuthentication]
     parser_classes = [MultiPartParser, FormParser]
     serializer_class = PrimaryImageSerializer
 
@@ -49,7 +53,7 @@ class ImgApiViewSet(viewsets.ViewSet):
         serializer = PrimaryImageSerializer(self.get_queryset(request),
                             many=True, context=context)
 
-        return Response(data=serializer.data)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
     
     def create(self, request): 
         cust_user = CustUser.objects.get(user=request.user.id)
@@ -59,6 +63,7 @@ class ImgApiViewSet(viewsets.ViewSet):
             serializer.save()        
             return self.retrieve(request, pk=serializer.instance.id,
                             created=True)
+        
         return Response(serializer.errors, status=status.HTTP_403_FORBIDDEN)
 
     def retrieve(self, request, pk=None, created=None):
