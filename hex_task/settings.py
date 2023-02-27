@@ -14,7 +14,7 @@ from pathlib import Path
 
 #### different settings parameters ####
 
-production = False
+production = True
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -151,4 +151,4 @@ REST_FRAMEWORK = {
 }
 
 if production == True:
-    from loan_co_site.prod_settings import *
+    from hex_task.prod_settings import *

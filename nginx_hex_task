@@ -1,0 +1,33 @@
+server {
+    listen 80;
+    server_name 18.195.219.19;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location /static/ {
+        root /var/www/hex_ocean;
+    }
+    location /media/ {
+#        internal;
+#        alias /var/www/hex_ocean/media/;
+        root /var/www/hex_ocean;
+        proxy_set_header X-Accel-Redirect $uri;
+#        proxy_set_header Authorization "";
+#        proxy_set_header X-Accel-Expires 300;
+        proxy_set_header Host $http_host;
+        proxy_pass http://localhost:8000;
+    }
+
+    location /protected/ {
+        internal;
+        alias /var/www/hex_ocean/media/;
+        add_header Cache-Control private;
+    }
+
+
+
+    location / {
+        include proxy_params;
+#        proxy_pass http://unix:/run/gunicorn.sock;
+	proxy_pass http://localhost:8000;
+    }
+}

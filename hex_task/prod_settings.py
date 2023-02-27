@@ -12,7 +12,7 @@ This file should be placed in the same folder as settings.py
 DEBUG = False
 
 # ec2_health_check = os.environ.get('EC2_PRV_IP')
-# ALLOWED_HOSTS = [".loan-co.xyz", ec2_health_check.split(' ')[0]]
+ALLOWED_HOSTS = ['18.195.219.19']
 
 #dbs
 
@@ -38,7 +38,7 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = '/var/www/hex_ocean/media'
 
 # logs
-'''
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -57,4 +57,3 @@ LOGGING = {
         },
     },
 }
-'''

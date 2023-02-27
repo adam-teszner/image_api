@@ -1,8 +1,9 @@
+import mimetypes
 from datetime import datetime
 
 from django.conf import settings
 from django.core.signing import BadSignature, Signer
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status, views, viewsets
 from rest_framework.authentication import (BasicAuthentication,
@@ -120,12 +121,19 @@ class ImageView(views.APIView):
         user = kwargs.get('pk')
         filename = kwargs.get('filename')
         full_path = str(settings.MEDIA_ROOT) + '/' + str(user) + '/images/' + filename
+        prot_path = '/protected' + '/' + str(user) + '/images/' + filename
+        mimetype, encoding = mimetypes.guess_type(prot_path)
         cust_user = CustUser.objects.get(id=user)
         
         # Serve image if user is uploader of requested image and is logged in
         if self.request.user.is_authenticated:
             if self.request.user.id == cust_user.user.id or self.request.user.is_superuser:
-                return FileResponse(open(full_path, 'rb'), status=status.HTTP_200_OK)
+                response = HttpResponse()
+                # response['X-Accel-Redirect'] = full_path
+                response['X-Accel-Redirect'] = prot_path
+                response['Content-Type'] = mimetype
+                return response                
+                # return FileResponse(open(full_path, 'rb'), status=status.HTTP_200_OK)
         
         # If user isn't logged in check signature, timestamp, if valid open image
         if not self.request.user.is_authenticated:
@@ -148,5 +156,9 @@ class ImageView(views.APIView):
                 raise PermissionDenied('Link has expired')
             
 
-
-            return FileResponse(open(full_path, 'rb'), status=status.HTTP_200_OK)
+            response = HttpResponse()
+            # response['X-Accel-Redirect'] = full_path
+            response['X-Accel-Redirect'] = prot_path
+            response['Content-Type'] = mimetype
+            return response
+            # return FileResponse(open(full_path, 'rb'), status=status.HTTP_200_OK)
