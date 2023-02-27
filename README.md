@@ -17,6 +17,7 @@ Prerequisites for installation using docker-compose:
 - Open terminal and navigate to desired directory and type:
 
 	`git clone https://github.com/adam-teszner/image_api.git .`
+	
 	`docker-compose up`
 
 Executing commands may stop for a while at: 
